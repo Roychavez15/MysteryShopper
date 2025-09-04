@@ -4,6 +4,7 @@ using MysteryShopper.API.Contracts;
 using MysteryShopper.API.Domain.Identity;
 using MysteryShopper.API.Domain;
 using MysteryShopper.API.Infrastructure;
+using MysteryShopper.API.Contracts.DTOs;
 
 namespace MysteryShopper.API.Controllers
 {

@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using MysteryShopper.API.Domain;
+﻿using MysteryShopper.API.Domain;
 
 namespace MysteryShopper.API.Infrastructure.Files
 {

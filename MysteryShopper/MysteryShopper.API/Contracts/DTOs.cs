@@ -6,12 +6,12 @@ namespace MysteryShopper.API.Contracts
     public record LoginRequest(string Email, string Password);
     public record AuthResponse(string Token);
 
-    public record CompanyCreateDto(string Name, string? Notes);
-    public record AgencyCreateDto(Guid CompanyId, string Name, string? Address);
-    public record EmployeeCreateDto(Guid AgencyId, string FullName, string? Position);
+    //public record CompanyCreateDto(string Name, string? Notes);
+    //public record AgencyCreateDto(Guid CompanyId, string Name, string? Address);
+    //public record EmployeeCreateDto(Guid AgencyId, string FullName, string? Position);
 
-    public record SurveyTemplateCreateDto(Guid CompanyId, string Title, string? Description);
-    public record QuestionCreateDto(Guid SurveyTemplateId, string Text, QuestionType Type, decimal Weight, string? OptionsJson, bool AllowComment, bool AllowMedia);
+    //public record SurveyTemplateCreateDto(Guid CompanyId, string Title, string? Description);
+    //public record QuestionCreateDto(Guid SurveyTemplateId, string Text, QuestionType Type, decimal Weight, string? OptionsJson, bool AllowComment, bool AllowMedia);
 
     public record AssignmentCreateDto(Guid SurveyTemplateId, Guid AgencyId, Guid? EmployeeId, string EvaluatorUserId, DateTime DueDate);
 
