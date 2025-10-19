@@ -1,5 +1,6 @@
 ﻿namespace MysteryShopper.API.Domain
 {
+    using MysteryShopper.API.Domain.Identity;
     using System.ComponentModel.DataAnnotations;
 
     public abstract class BaseEntity
@@ -24,6 +25,8 @@
         [MaxLength(200)] public string Name { get; set; } = default!; // e.g., KFC, McDonalds
         public string? Notes { get; set; }
         public ICollection<Agency> Agencies { get; set; } = new List<Agency>();
+        public ICollection<ApplicationUser> Users { get; set; } = new List<ApplicationUser>();
+
     }
 
     public class Agency : BaseEntity

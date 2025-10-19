@@ -1,8 +1,10 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using MysteryShopper.API.Contracts.DTOs;
 using MysteryShopper.API.Domain;
+using MysteryShopper.API.Domain.Identity;
 using MysteryShopper.API.Infrastructure;
 
 namespace MysteryShopper.API.Controllers
@@ -14,28 +16,61 @@ namespace MysteryShopper.API.Controllers
         private readonly IUnitOfWork _uow;
         private readonly IMapper _mapper;
         private readonly AppDbContext _db;
-
-        public AgencyController(IUnitOfWork uow, IMapper mapper, AppDbContext db)
+        private readonly UserManager<ApplicationUser> _userManager;
+        public AgencyController(IUnitOfWork uow, IMapper mapper, AppDbContext db, UserManager<ApplicationUser> userManager)
         {
             _uow = uow;
             _mapper = mapper;
             _db = db;
+            _userManager = userManager;
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var list = _uow.Agencies.Query().ToList();
-            return Ok(_mapper.Map<IEnumerable<AgencyDto>>(list));
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            if (User.IsInRole(Roles.Admin))
+            {
+                var all = _uow.Agencies.Query().ToList();
+                return Ok(_mapper.Map<IEnumerable<AgencyDto>>(all));
+            }
+            else if (User.IsInRole(Roles.Client))
+            {
+                if (currentUser?.CompanyId == null)
+                    return Forbid();
+
+                var list = _uow.Agencies.Query()
+                    .Where(a => a.CompanyId == currentUser.CompanyId.Value)
+                    .ToList();
+
+                return Ok(_mapper.Map<IEnumerable<AgencyDto>>(list));
+            }
+
+            return Forbid();
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var item = await _uow.Agencies.GetByIdAsync(id);
-            if (item == null) return NotFound();
-            return Ok(_mapper.Map<AgencyDto>(item));
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            var agency = await _uow.Agencies.GetByIdAsync(id);
+            if (agency == null) return NotFound();
+
+            if (User.IsInRole(Roles.Admin))
+            {
+                return Ok(_mapper.Map<AgencyDto>(agency));
+            }
+            else if (User.IsInRole(Roles.Client))
+            {
+                if (currentUser?.CompanyId != agency.CompanyId) return Forbid();
+                return Ok(_mapper.Map<AgencyDto>(agency));
+            }
+
+            return Forbid();
         }
+
 
         [HttpPost]
         [Authorize(Roles = "ADMIN,CLIENTE")]

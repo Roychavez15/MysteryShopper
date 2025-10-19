@@ -5,6 +5,8 @@ using MysteryShopper.API.Contracts.DTOs;
 using MysteryShopper.API.Domain;
 
 using MysteryShopper.API.Infrastructure;
+using Microsoft.AspNetCore.Identity;
+using MysteryShopper.API.Domain.Identity;
 namespace MysteryShopper.API.Controllers
 {
     [ApiController]
@@ -14,30 +16,68 @@ namespace MysteryShopper.API.Controllers
         private readonly IUnitOfWork _uow;
         private readonly IMapper _mapper;
         private readonly AppDbContext _db;
-
-        public SurveyResponseController(IUnitOfWork uow, IMapper mapper, AppDbContext db)
+        private readonly UserManager<ApplicationUser> _userManager;
+        public SurveyResponseController(IUnitOfWork uow, IMapper mapper, AppDbContext db, UserManager<ApplicationUser> userManager)
         {
             _uow = uow;
             _mapper = mapper;
             _db = db;
+            _userManager = userManager;
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var list = _uow.Responses.Query().ToList();
-            return Ok(_mapper.Map<IEnumerable<SurveyResponseDto>>(list));
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            if (User.IsInRole(Roles.Admin))
+            {
+                return Ok(_mapper.Map<IEnumerable<SurveyResponseDto>>(_uow.Responses.Query().ToList()));
+            }
+            else if (User.IsInRole(Roles.Client))
+            {
+                if (currentUser?.CompanyId == null) return Forbid();
+
+                var list = _uow.Responses.Query()
+                    .Where(r => r.Assignment.Agency.CompanyId == currentUser.CompanyId.Value)
+                    .ToList();
+
+                return Ok(_mapper.Map<IEnumerable<SurveyResponseDto>>(list));
+            }
+            else if (User.IsInRole(Roles.Evaluator))
+            {
+                var list = _uow.Responses.Query()
+                    .Where(r => r.CreatedBy == currentUser!.Id)
+                    .ToList();
+
+                return Ok(_mapper.Map<IEnumerable<SurveyResponseDto>>(list));
+            }
+
+            return Forbid();
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var item = await _uow.Responses.GetByIdAsync(id);
-            if (item == null) return NotFound();
-            return Ok(_mapper.Map<SurveyResponseDto>(item));
-        }
+            var currentUser = await _userManager.GetUserAsync(User);
+            var response = await _uow.Responses.GetByIdAsync(id);
 
-        [HttpPost]
+            if (response == null) return NotFound();
+
+            if (User.IsInRole(Roles.Admin))
+                return Ok(_mapper.Map<SurveyResponseDto>(response));
+
+            if (User.IsInRole(Roles.Client) && response.Assignment.Agency.CompanyId == currentUser?.CompanyId)
+                return Ok(_mapper.Map<SurveyResponseDto>(response));
+
+            if (User.IsInRole(Roles.Evaluator) && response.CreatedBy == currentUser!.Id)
+                return Ok(_mapper.Map<SurveyResponseDto>(response));
+
+            return Forbid();
+        }
+    
+
+    [HttpPost]
         [Authorize(Roles = "ADMIN,CLIENTE")]
         public async Task<IActionResult> Create(SurveyResponseCreateDto dto)
         {

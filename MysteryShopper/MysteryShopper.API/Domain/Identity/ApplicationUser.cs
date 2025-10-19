@@ -3,9 +3,9 @@
     using Microsoft.AspNetCore.Identity;
 
     public class ApplicationUser : IdentityUser
-    {
-        // Extend if needed (e.g., OwnerCompanyId for CLIENT admins) 
+    {        
         public Guid? CompanyId { get; set; }
+        public Company? Company { get; set; }
     }
 
     public static class Roles

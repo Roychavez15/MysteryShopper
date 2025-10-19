@@ -4,6 +4,8 @@ using AutoMapper;
 using MysteryShopper.API.Contracts.DTOs;
 using MysteryShopper.API.Domain;
 using MysteryShopper.API.Infrastructure;
+using Microsoft.AspNetCore.Identity;
+using MysteryShopper.API.Domain.Identity;
 
 namespace MysteryShopper.API.Controllers
 {
@@ -14,28 +16,56 @@ namespace MysteryShopper.API.Controllers
         private readonly IUnitOfWork _uow;
         private readonly IMapper _mapper;
         private readonly AppDbContext _db;
-
-        public SurveyTemplateController(IUnitOfWork uow, IMapper mapper, AppDbContext db)
+        private readonly UserManager<ApplicationUser> _userManager;
+        public SurveyTemplateController(IUnitOfWork uow, IMapper mapper, AppDbContext db, UserManager<ApplicationUser> userManager)
         {
             _uow = uow;
             _mapper = mapper;
             _db = db;
+            _userManager = userManager;
         }
 
         [HttpGet]
-        public IActionResult GetAll()
+        public async Task<IActionResult> GetAll()
         {
-            var list = _uow.SurveyTemplates.Query().ToList();
-            return Ok(_mapper.Map<IEnumerable<SurveyTemplateDto>>(list));
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            if (User.IsInRole(Roles.Admin))
+            {
+                var all = _uow.SurveyTemplates.Query().ToList();
+                return Ok(_mapper.Map<IEnumerable<SurveyTemplateDto>>(all));
+            }
+            else if (User.IsInRole(Roles.Client))
+            {
+                if (currentUser?.CompanyId == null) return Forbid();
+
+                var list = _uow.SurveyTemplates.Query()
+                    .Where(s => s.CompanyId == currentUser.CompanyId.Value)
+                    .ToList();
+
+                return Ok(_mapper.Map<IEnumerable<SurveyTemplateDto>>(list));
+            }
+
+            return Forbid();
         }
 
         [HttpGet("{id}")]
         public async Task<IActionResult> GetById(Guid id)
         {
-            var item = await _uow.SurveyTemplates.GetByIdAsync(id);
-            if (item == null) return NotFound();
-            return Ok(_mapper.Map<SurveyTemplateDto>(item));
+            var currentUser = await _userManager.GetUserAsync(User);
+
+            var survey = await _uow.SurveyTemplates.GetByIdAsync(id);
+            if (survey == null) return NotFound();
+
+            if (User.IsInRole(Roles.Admin))
+                return Ok(_mapper.Map<SurveyTemplateDto>(survey));
+
+            if (User.IsInRole(Roles.Client) && survey.CompanyId == currentUser?.CompanyId)
+                return Ok(_mapper.Map<SurveyTemplateDto>(survey));
+
+            return Forbid();
         }
+
 
         [HttpPost]
         [Authorize(Roles = "ADMIN,CLIENTE")]

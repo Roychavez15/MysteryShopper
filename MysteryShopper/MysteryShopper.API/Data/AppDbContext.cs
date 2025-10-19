@@ -97,7 +97,11 @@ public class AppDbContext : IdentityDbContext<ApplicationUser>
             var filter = method.Invoke(null, new object[] { });
             entityType.SetQueryFilter((LambdaExpression)filter!);
         }
-
+        b.Entity<ApplicationUser>()
+            .HasOne(u => u.Company)
+            .WithMany(c => c.Users) 
+            .HasForeignKey(u => u.CompanyId)
+            .OnDelete(DeleteBehavior.Restrict);
         // Company
         b.Entity<Company>()
             .HasIndex(x => x.Name)
