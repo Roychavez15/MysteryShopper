@@ -3,14 +3,15 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Data;
-using System;
-using System.Text;
+using MysteryShopper.API.Data;
 using MysteryShopper.API.Domain.Identity;
 using MysteryShopper.API.Infrastructure;
 using MysteryShopper.API.Infrastructure.Files;
-using MysteryShopper.API.Services;
 using MysteryShopper.API.Infrastructure.Mapping;
+using MysteryShopper.API.Services;
+using System;
+using System.Data;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -101,24 +102,27 @@ var app = builder.Build();
 // Seed roles and admin
 using (var scope = app.Services.CreateScope())
 {
-    var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
+    //var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    //var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<ApplicationUser>>();
 
-    string[] roles = [Roles.Admin, Roles.Client, Roles.Evaluator];
-    foreach (var r in roles)
-    {
-        if (!await roleMgr.RoleExistsAsync(r))
-            await roleMgr.CreateAsync(new IdentityRole(r));
-    }
+    //string[] roles = [Roles.Admin, Roles.Client, Roles.Evaluator];
+    //foreach (var r in roles)
+    //{
+    //    if (!await roleMgr.RoleExistsAsync(r))
+    //        await roleMgr.CreateAsync(new IdentityRole(r));
+    //}
 
-    var adminEmail = "admin@ms.local";
-    var admin = await userMgr.FindByEmailAsync(adminEmail);
-    if (admin is null)
-    {
-        admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
-        await userMgr.CreateAsync(admin, "Admin#12345");
-        await userMgr.AddToRoleAsync(admin, Roles.Admin);
-    }
+    //var adminEmail = "admin@ms.local";
+    //var admin = await userMgr.FindByEmailAsync(adminEmail);
+    //if (admin is null)
+    //{
+    //    admin = new ApplicationUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
+    //    await userMgr.CreateAsync(admin, "Admin#12345");
+    //    await userMgr.AddToRoleAsync(admin, Roles.Admin);
+    //}
+    var services = scope.ServiceProvider;
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    await DbInitializer.SeedAsync(services, logger);
 }
 
 app.UseStaticFiles(); // for wwwroot uploads
